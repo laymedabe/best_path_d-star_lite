@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Evacuation Routing</title>
+    <!-- We link local leaflet CSS and JS assuming offline. For now we use CDNs but the map tiles are local -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>Offline Evacuation D*</h2>
+            
+            <div class="panel">
+                <h3>Select Evacuation Route</h3>
+                <select id="barangay-select">
+                    <option value="">-- Choose Barangay --</option>
+                </select>
+                <button id="route-btn" class="primary-btn">Find Best Path</button>
+                <div id="route-result"></div>
+            </div>
+
+            <div class="panel">
+                <h3>Report Road Condition</h3>
+                <select id="report-barangay">
+                    <option value="">-- Affected Barangay --</option>
+                </select>
+                <select id="report-type">
+                    <option value="Flood">Flood</option>
+                    <option value="Landslide">Landslide</option>
+                    <option value="Mud">Heavy Mud</option>
+                </select>
+                <input type="text" id="report-details" placeholder="Additional details..." />
+                <select id="report-severity">
+                    <option value="1.5">Mild (1.5x delay)</option>
+                    <option value="3.0">Severe (3x delay)</option>
+                    <option value="10.0">Impassable (10x delay)</option>
+                </select>
+                <button id="report-btn" class="danger-btn">Submit Report</button>
+            </div>
+
+            <div class="panel scrollable">
+                <h3>Route History</h3>
+                <ul id="history-list"></ul>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -158952,8 +158952,8 @@
     {
       "type": "Feature",
       "properties": {
-        "Barangay": "Poblacion",
-        "Path_Name": "Poblacion to Dugo 1"
+        "Barangay": "Dugo",
+        "Path_Name": "Dugo 1 to Poblacion"
       },
       "geometry": {
         "type": "LineString",
@@ -159248,8 +159248,8 @@
     {
       "type": "Feature",
       "properties": {
-        "Barangay": "Poblacion",
-        "Path_Name": "Poblacion to Dugo 2"
+        "Barangay": "Dugo",
+        "Path_Name": "Dugo 2 to Poblacion"
       },
       "geometry": {
         "type": "LineString",
@@ -159528,8 +159528,8 @@
     {
       "type": "Feature",
       "properties": {
-        "Barangay": "Poblacion",
-        "Path_Name": "Poblacion to Dugo 3"
+        "Barangay": "Dugo",
+        "Path_Name": "Dugo 3 to Poblacion"
       },
       "geometry": {
         "type": "LineString",
