@@ -75,14 +75,16 @@ document.getElementById('route-btn').addEventListener('click', () => {
             
             const feature = allFeatures.find(f => {
                 const pname = f.properties.Path_Name;
-                return pname.includes(u) && pname.includes(v);
+                return (pname.startsWith(u + ' to ') && pname.endsWith(v)) || 
+                       (pname.startsWith(v + ' to ') && pname.endsWith(u)) ||
+                       pname === `${u} to ${v}` || 
+                       pname === `${v} to ${u}`;
             });
             if(feature) activeFeatures.push(feature);
         }
         
         let displayRoute = data.path.join(' &rarr; ');
         if (activeFeatures.length > 0) {
-            // Filter duplicates in case virtual edges match the same feature
             const uniqueNames = [...new Set(activeFeatures.map(f => f.properties.Path_Name))];
             displayRoute = uniqueNames.join(', ');
         }
@@ -120,7 +122,6 @@ document.getElementById('report-btn').addEventListener('click', () => {
 function drawRoute(pathNodes) {
     if (routeLayer) map.removeLayer(routeLayer);
     
-    // Find geojson features that connect these nodes
     const activeFeatures = [];
     for(let i=0; i<pathNodes.length - 1; i++) {
         const u = pathNodes[i];
@@ -128,7 +129,10 @@ function drawRoute(pathNodes) {
         
         const feature = allFeatures.find(f => {
             const pname = f.properties.Path_Name;
-            return pname.includes(u) && pname.includes(v); // simplified matching
+            return (pname.startsWith(u + ' to ') && pname.endsWith(v)) || 
+                   (pname.startsWith(v + ' to ') && pname.endsWith(u)) ||
+                   pname === `${u} to ${v}` || 
+                   pname === `${v} to ${u}`;
         });
         if(feature) activeFeatures.push(feature);
     }
