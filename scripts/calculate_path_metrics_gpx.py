@@ -28,7 +28,7 @@ def calculate_metrics():
         return
         
     gpx_file = gpx_files[0]
-    csv_file = r"d:\CaelianProj\best_path_d-star_lite\Calculated_Path_Metrics_GPX.csv"
+    csv_file = r"d:\CaelianProj\best_path_d-star_lite\data\Calculated_Path_Metrics_GPX.csv"
 
     print(f"Processing {gpx_file}...")
 

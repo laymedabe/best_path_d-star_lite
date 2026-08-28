@@ -6,9 +6,9 @@ from graph_builder import load_graph_from_csv
 from dstar_lite import DStarLite
 
 app = Flask(__name__)
-DB_PATH = os.path.join(os.path.dirname(__file__), 'evacuation.db')
-CSV_PATH = os.path.join(os.path.dirname(__file__), 'Calculated_Path_Metrics_GPX.csv')
-GEOJSON_PATH = os.path.join(os.path.dirname(__file__), 'Half_complete_Paths.geojson')
+DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'evacuation.db')
+CSV_PATH = os.path.join(os.path.dirname(__file__), 'data', 'Calculated_Path_Metrics_GPX.csv')
+GEOJSON_PATH = os.path.join(os.path.dirname(__file__), 'data', 'Half_complete_Paths.geojson')
 
 graph = load_graph_from_csv(CSV_PATH)
 
