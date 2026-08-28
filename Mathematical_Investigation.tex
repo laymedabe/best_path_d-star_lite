@@ -1,0 +1,122 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\title{A Mathematical Investigation: Optimizing Evacuation Routes}
+\author{Path Metrics and D* Lite Algorithm}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+In the event of a natural disaster, finding the fastest evacuation route is a critical real-world problem. To a computer, a map is modeled as a graph containing nodes (intersections) and edges (roads). In order to determine the fastest route, we must mathematically calculate the "cost" (travel time) of every edge. This investigation details the mathematical sequence required to convert raw GPS data into physical travel times, and how the D* Lite algorithm utilizes this data to find an optimal path.
+
+\section{Terminologies and Abbreviations}
+To ensure a clear understanding of the mathematical models and algorithms discussed in this investigation, the following key terms and variables are defined:
+
+\begin{itemize}
+    \item \textbf{Node / Vertex:} A distinct point on a map, such as an intersection, a town, or a GPS coordinate.
+    \item \textbf{Edge:} The connection or path (e.g., a road) between two nodes.
+    \item \textbf{Cost (Edge Cost):} The mathematical "weight" of an edge. In this study, the cost specifically refers to the \textit{travel time} required to cross an edge.
+    \item \textbf{GPX (GPS Exchange Format):} A data format containing recorded GPS tracks, including latitude ($\phi$), longitude ($\lambda$), and elevation ($z$).
+    \item \textbf{Haversine Formula:} An equation crucial in navigation, giving great-circle distances between two points on a sphere from their longitudes and latitudes.
+    \item \textbf{Gradient (Slope):} The physical steepness of a road, calculated as the ratio of vertical elevation change (rise) to horizontal distance (run).
+    \item \textbf{Sinuosity Index:} A mathematical ratio used to quantify how much a path curves or deviates from the shortest possible straight-line path.
+    \item \textbf{Heuristic:} An informed mathematical guess or approximation (used by algorithms like A* and D* Lite) to estimate the remaining distance to the goal.
+    \item $\boldsymbol{V_{base}}$: The theoretical maximum base speed of a vehicle on a perfectly flat, straight road.
+    \item $\boldsymbol{V_{adj}}$: The final adjusted speed of a vehicle after mathematically applying penalties for steep slopes and sharp curves.
+    \item $\boldsymbol{g(s)}$: The calculated true cost (time) to travel from a specific node $s$ to the goal.
+    \item $\boldsymbol{rhs(s)}$: The one-step lookahead cost, used in D* Lite to detect if a hazard has suddenly changed the travel time of a nearby road.
+\end{itemize}
+\section{Step 1: Calculating Spherical Distance (Haversine)}
+The Earth is a sphere, meaning standard Euclidean geometry (like measuring a straight line on a flat piece of paper) will result in inaccurate distances over large areas. To accurately measure the ground distance between two GPS coordinates, we use the \textbf{Haversine Formula}, which calculates the "great-circle" distance on a sphere.
+
+Given two points with latitudes $\phi_1, \phi_2$ and longitudes $\lambda_1, \lambda_2$ (in radians):
+\begin{align}
+    \Delta\phi &= \phi_2 - \phi_1 \\
+    \Delta\lambda &= \lambda_2 - \lambda_1
+\end{align}
+We calculate the intermediate value $a$:
+\begin{equation}
+    a = \sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right)
+\end{equation}
+We then calculate the angular distance $c$:
+\begin{equation}
+    c = 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)
+\end{equation}
+Finally, we multiply by the Earth's radius $R$ ($6,371,000$ meters) to find the 2D ground distance $d_{2d}$:
+\begin{equation}
+    d_{2d} = R \cdot c
+\end{equation}
+
+\section{Step 2: Accounting for Topography (Pythagorean Theorem)}
+The Haversine formula provides the distance as if we drew a straight line through the base of a hill. However, a vehicle must travel \textit{over} the hill. To calculate the actual physical road length, we apply the \textbf{Pythagorean Theorem}.
+
+If the 2D ground distance $d_{2d}$ forms the base of a right-angled triangle, and the elevation change $\Delta z = (z_2 - z_1)$ forms the height, the road acts as the hypotenuse:
+\begin{equation}
+    d_{3d} = \sqrt{d_{2d}^2 + \Delta z^2}
+\end{equation}
+
+\section{Step 3: Calculating Kinematic Penalties}
+A vehicle can only maintain its maximum base speed ($V_{base}$) on a road that is perfectly flat and perfectly straight. We must mathematically penalize (reduce) the vehicle's speed based on the terrain.
+
+\subsection{Gradient (Slope Penalty)}
+The gradient measures the steepness of the road, defined mathematically as the ratio of "rise over run".
+\begin{equation}
+    \text{Gradient} = \left( \frac{\Delta z}{d_{2d}} \right) \times 100\%
+\end{equation}
+We apply a linear penalty $P_{slope}$, dictating that for every $1\%$ of absolute gradient, the vehicle's speed is reduced by $2\%$. We cap this penalty at $80\%$ ($0.8$) to ensure the vehicle retains a minimum forward velocity on extremely steep hills.
+\begin{equation}
+    P_{slope} = \min\left(|\text{Gradient}| \times 0.02, 0.8\right)
+\end{equation}
+
+\subsection{Sinuosity (Curvature Penalty)}
+Sinuosity measures how "winding" a road is by comparing the actual path length to the straight-line distance. A perfectly straight road has a ratio of $1.0$. A zig-zagging mountain road might have a ratio of $1.5$ (meaning the actual road is $50\%$ longer than a straight line).
+\begin{equation}
+    \text{Sinuosity} = \frac{\sum d_{2d}}{\text{Straight-Line Distance}}
+\end{equation}
+We introduce a curvature penalty $P_{curve}$ that reduces speed by $5\%$ for every $0.1$ increment above $1.0$, capped at $50\%$ ($0.5$).
+\begin{equation}
+    P_{curve} = \min\left(\max(\text{Sinuosity} - 1.0, 0) \times 0.5, 0.5\right)
+\end{equation}
+
+\section{Step 4: True Travel Time}
+We determine the vehicle's adjusted speed ($V_{adj}$) by subtracting our calculated penalty modifiers from the theoretical base speed ($V_{base} = 8.33$ m/s, approx. 30 km/h).
+\begin{equation}
+    V_{adj} = V_{base} \times (1 - P_{slope}) \times (1 - P_{curve})
+\end{equation}
+Finally, we apply the fundamental kinematic equation to determine the true travel time cost (in seconds) for that specific road segment:
+\begin{equation}
+    \text{Time} = \frac{d_{3d}}{V_{adj}}
+\end{equation}
+
+\section{The D* Lite Algorithm}
+Once the mathematical time cost is calculated for every road, the system must navigate the vast network of nodes to find the optimal path.
+
+\subsection{The Limitation of A* (A-Star)}
+Standard GPS applications utilize the A* algorithm, which explores nodes by calculating a heuristic cost from the start to the goal. While highly efficient for static maps, A* fails in disaster scenarios. If a road is suddenly reported as flooded (dynamic edge cost change), A* is invalidated and must completely recalculate the entire path from scratch, which is computationally expensive and slow during an emergency.
+
+\subsection{The Mathematics of D* Lite}
+\textbf{D* Lite (Dynamic A* Lite)} is a specialized incremental search algorithm optimized for dynamic, unknown environments. It operates on two foundational principles that differentiate it from A*:
+
+\begin{enumerate}
+    \item \textbf{Backward Search:} D* Lite searches in reverse, starting from the Goal (evacuation center) and working backwards to the Start (evacuee location). Mathematically, it calculates the true cost $g(s)$ to reach the goal from any given state $s$.
+    \item \textbf{Local Consistency (rhs values):} Alongside the actual cost $g(s)$, D* Lite maintains a one-step lookahead value called $rhs(s)$. 
+    \begin{equation}
+        rhs(s) = \min_{s' \in Succ(s)} (c(s, s') + g(s'))
+    \end{equation}
+    Where $c(s, s')$ is the travel time cost of the edge from state $s$ to its successor $s'$.
+\end{enumerate}
+
+\textbf{Handling Dynamic Hazards:} \\
+A node is considered "consistent" when $g(s) = rhs(s)$. If a disaster strikes and a road's travel time ($c$) instantly increases due to flooding, the $rhs(s)$ value of the affected node changes, making it "inconsistent". 
+
+Instead of discarding all calculations like A*, D* Lite simply places the inconsistent node into a priority queue. It then cascades the mathematical updates only to the directly affected neighboring nodes, reusing the previously calculated mathematical costs for the rest of the map. This allows D* Lite to dynamically and instantaneously output a new optimal evacuation route the moment a hazard occurs.
+
+\end{document}

@@ -1,0 +1,130 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\title{Evacuation Pathfinding System Documentation}
+\author{System Architecture, Mathematical Models, and Algorithms}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Overview of System Components}
+This section provides a high-level list of the mathematical equations, algorithms, and data structures utilized in the project.
+
+\textbf{Mathematical Equations (Path Metrics):}
+\begin{itemize}
+    \item 2D Ground Distance (Haversine Formula)
+    \item 3D Travel Distance (Pythagorean Theorem)
+    \item Elevation Difference, Total Ascent, and Total Descent
+    \item Point-to-point Slope and Overall Gradient
+    \item Sinuosity Index (Curvature)
+    \item Kinematic Speed Penalties (Slope and Curvature Penalties)
+\end{itemize}
+
+\textbf{Algorithms:}
+\begin{itemize}
+    \item D* Lite (Dynamic Pathfinding Algorithm)
+\end{itemize}
+
+\textbf{Data Sources \& Structures:}
+\begin{itemize}
+    \item \textbf{Raw Data:} GPX Track Files (Spatial coordinates and elevation)
+    \item \textbf{Processed Data:} \texttt{Calculated\_Path\_Metrics\_GPX.csv} (Edge costs)
+    \item \textbf{Dynamic Data:} \texttt{evacuation.db} (SQLite database storing real-time hazard reports)
+    \item \textbf{Map Data:} Locally hosted PNG map tiles for offline viewing.
+\end{itemize}
+
+
+\section{System Architecture and Data Flow}
+The following outlines how raw spatial data is processed into mathematical metrics, fed into the graph structure, and dynamically modified by real-time hazard reports before being solved by the D* Lite algorithm.
+
+\vspace{1em}
+\textbf{1. Raw GPX Tracks} $\rightarrow$ \textbf{2. Metrics Script (Math Equations)} $\rightarrow$ \textbf{3. CSV (Base Edge Costs)} $\rightarrow$ \textbf{4. Graph Builder (In-Memory Nodes)} $\rightarrow$ \textbf{5. D* Lite Algorithm} $\rightarrow$ \textbf{6. Flask Web Interface / GeoJSON}
+
+\textit{Note: The SQLite database (Hazard Reports) dynamically feeds Severity Multipliers into Step 4 (Graph Builder).}
+
+\subsection{Offline Application Architecture}
+The system is designed to operate entirely offline, which is critical for disaster evacuation scenarios where internet infrastructure may be compromised.
+\begin{itemize}
+    \item \textbf{Local Web Server:} The Flask application (\texttt{app.py}) runs locally on the host machine.
+    \item \textbf{Offline Mapping:} Map tiles are pre-downloaded (via \texttt{download\_tiles.py}) and served directly from the \texttt{static/tiles/} directory, ensuring Leaflet maps render without internet access.
+    \item \textbf{Local Database:} Hazard reports and historical data are managed locally using an SQLite database (\texttt{evacuation.db}), requiring no external cloud connections.
+    \item \textbf{On-Device Computation:} All mathematical processing and D* Lite algorithm traversal happens on the local machine's CPU.
+\end{itemize}
+
+\newpage
+\section{Detailed Explanations of Equations and Algorithms}
+
+\subsection{Mathematical Equations}
+The system translates physical terrain into a "time cost" using the following formulas:
+
+\textbf{1. Distance Calculation} \\
+The 2D distance ($d_{2d}$) between two GPS points is calculated using the Haversine formula to account for the Earth's curvature.
+\begin{equation}
+    a = \sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right)
+\end{equation}
+\begin{equation}
+    d_{2d} = R \cdot 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)
+\end{equation}
+The 3D distance ($d_{3d}$) incorporates the elevation change ($\Delta z$) using the Pythagorean theorem:
+\begin{equation}
+    d_{3d} = \sqrt{d_{2d}^2 + \Delta z^2}
+\end{equation}
+
+\textbf{2. Topographical Gradient and Sinuosity} \\
+The overall gradient determines the steepness of the path:
+\begin{equation}
+    \text{Gradient} = \left( \frac{\text{Total Elevation Diff}}{d_{2d}} \right) \times 100\%
+\end{equation}
+The Sinuosity Index measures how winding a road is. A perfectly straight road has an index of 1.0.
+\begin{equation}
+    \text{Sinuosity} = \frac{\text{Total Path Length (along curves)}}{\text{Straight-Line Distance}}
+\end{equation}
+
+\textbf{3. Kinematic Speed Penalties} \\
+To accurately model travel time, base speed ($V_{base} = 8.33$ m/s) is penalized by steep slopes and sharp curves.
+\begin{equation}
+    P_{slope} = \min\left(|\text{Gradient}| \times 0.02, 0.8\right)
+\end{equation}
+\begin{equation}
+    P_{curve} = \min\left(\max(\text{Sinuosity} - 1.0, 0) \times 0.5, 0.5\right)
+\end{equation}
+\begin{equation}
+    V_{adj} = V_{base} \times (1 - P_{slope}) \times (1 - P_{curve})
+\end{equation}
+\begin{equation}
+    \text{Travel Time (seconds)} = \frac{d_{3d}}{V_{adj}}
+\end{equation}
+
+\subsection{The D* Lite Algorithm}
+\textbf{What is it?} \\
+D* Lite is an incremental heuristic search algorithm. It solves the same problem as A* or Dijkstra's (finding the shortest path from a start to a goal), but it is specifically optimized for unknown or dynamic terrains.
+
+\textbf{Why use D* Lite instead of A* or Dijkstra's?} \\
+In a standard navigation app, Dijkstra's or A* are sufficient. However, in an \textit{evacuation scenario}, road conditions change rapidly (e.g., a landslide blocks a route, or flooding causes severe congestion). If a path is blocked while using A*, the algorithm must throw away all its previous calculations and completely recalculate the path from scratch. 
+
+D* Lite solves this by searching \textit{backwards} from the Goal (the evacuation center) to the Start (the user). By maintaining local consistency values (\texttt{rhs} and \texttt{g} values), when a road hazard is reported via the SQLite database, D* Lite only recomputes the small localized area affected by the hazard, reusing the rest of the previously calculated graph. This makes it orders of magnitude faster at dynamic replanning.
+
+\textbf{Implementation} \\
+The \texttt{dstar\_lite.py} script maintains a priority queue of inconsistent vertices. When a user submits a hazard report, \texttt{app.py} multiplies the edge cost by the hazard severity. The D* Lite instance detects this edge cost change, places the affected nodes back into the priority queue, and efficiently ripples the changes through the graph to find the new optimal path.
+
+\newpage
+\section{Recommendations and Missing Factors}
+
+While the current model effectively translates distance, elevation, and curvature into travel time, the following factors are currently lacking and represent opportunities for future enhancement:
+
+\begin{enumerate}
+    \item \textbf{Road Surface Condition:} The CSV contains an empty \texttt{Condition} column. A dirt or muddy road will drastically reduce the friction coefficient and safe travel speed compared to paved concrete. Implementing a surface multiplier (e.g., $V_{adj} \times 0.6$ for dirt) is highly recommended.
+    \item \textbf{Road Width and Type:} The \texttt{Road\_Type} column is empty. Narrow single-lane barangay roads restrict speed compared to multi-lane highways, especially during high-volume evacuations where opposing traffic or bottlenecks occur.
+    \item \textbf{Weather Dynamics:} Extreme weather (typhoons, heavy rain) reduces visibility and tire traction. A global system variable to penalize all edge speeds during a weather event would increase realism.
+    \item \textbf{Intersection/Node Penalties:} Currently, the time cost is strictly edge-based. The model does not penalize routes that cross multiple intersections, which practically require vehicles to stop, yield, and accelerate. Adding a flat time penalty for every node traversed would favor bypass highways over dense city blocks.
+    \item \textbf{Traffic Congestion Simulation:} While the hazard reports act as a proxy for congestion, the base model assumes the evacuee is the only vehicle on the road. Evacuations inherently cause traffic jams. Integrating a dynamic flow model where edge cost increases as more users are routed through the same edge would create a load-balancing evacuation system.
+\end{enumerate}
+
+\end{document}
