@@ -1,0 +1,74 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\title{Path Metrics Computations \& Theories}
+\author{Based on \texttt{calculate\_path\_metrics\_gpx.py}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Distance Calculation (Spherical \& Euclidean Theory)}
+
+\textbf{2D Ground Distance ($d_{2d}$):} Uses the Haversine Formula, which is the standard trigonometric theory for calculating the great-circle distance between two points on a sphere (the Earth).
+\begin{align}
+    a &= \sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right) \\
+    c &= 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right) \\
+    d_{2d} &= R \cdot c
+\end{align}
+\textit{Where $R = 6371000$ meters (Earth's radius), $\phi$ is latitude, and $\lambda$ is longitude.}
+
+\vspace{1em}
+\textbf{3D Travel Distance ($d_{3d}$):} Uses the Pythagorean Theorem to account for elevation changes, ensuring the distance includes the physical hypotenuse of traveling up/down a hill.
+\begin{equation}
+    d_{3d} = \sqrt{d_{2d}^2 + \Delta z^2}
+\end{equation}
+\textit{Where $\Delta z = z_2 - z_1$ (elevation difference).}
+
+\section{Topographical Computations}
+
+\textbf{Total Ascent/Descent:} Iterates through every segment between GPX points. If the elevation difference ($\Delta z$) is positive, it adds it to the total ascent. If negative, the absolute value is added to total descent.
+\begin{align}
+    \text{Ascent} &= \sum_{\Delta z_i > 0} \Delta z_i \\
+    \text{Descent} &= \sum_{\Delta z_i < 0} |\Delta z_i|
+\end{align}
+
+\textbf{Max Slope ($S_{max}$):} Calculated by finding the slope of every individual segment and tracking the highest absolute value found.
+\begin{align}
+    \text{Slope}_i &= \left( \frac{\Delta z_i}{d_{2d,i}} \right) \times 100\% \\
+    S_{max} &= \max_i (|\text{Slope}_i|)
+\end{align}
+
+\textbf{Overall Gradient:} The average slope of the entire path from start to finish.
+\begin{equation}
+    \text{Gradient} = \left( \frac{\sum \Delta z}{\sum d_{2d}} \right) \times 100\%
+\end{equation}
+
+\section{Kinematic Penalty Theory (Speed \& Travel Time)}
+
+Instead of a complex non-linear curve (like Tobler's function), this script uses a \textbf{Linear Slope Penalty Theory}.
+
+\vspace{1em}
+\textbf{Slope Penalty ($P$):} Linear rule where base speed reduces by 2\% for every 1\% of absolute overall gradient. Capped at a maximum penalty of 80\% (0.8).
+\begin{equation}
+    P = \min\left(|\text{Gradient}| \times 0.02, 0.8\right)
+\end{equation}
+
+\textbf{Adjusted Speed ($V_{adj}$):}
+\begin{equation}
+    V_{adj} = V_{base} \times (1 - P)
+\end{equation}
+\textit{Where $V_{base} = 8.33 \text{ m/s}$ (approx. 30 km/h, typically for vehicle travel).}
+
+\vspace{1em}
+\textbf{Travel Time with Slope ($T_{slope}$):}
+\begin{equation}
+    T_{slope} = \frac{\sum d_{3d}}{V_{adj}}
+\end{equation}
+\textit{To get minutes: $T_{min} = \frac{T_{slope}}{60}$}
+
+\end{document}

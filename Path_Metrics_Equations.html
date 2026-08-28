@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Path Metrics Computations</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px auto;
+            max-width: 800px;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        h2 {
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        .math-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Path Metrics Computations & Theories</h1>
+
+    <h2>1. Distance Calculation (Spherical & Euclidean Theory)</h2>
+    <p><strong>2D Ground Distance (\(d_{2d}\)):</strong> Uses the Haversine Formula, which is the standard trigonometric theory for calculating the great-circle distance between two points on a sphere (the Earth).</p>
+    <div class="math-block">
+        \[ a = \sin^2\left(\frac{\Delta\phi}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\Delta\lambda}{2}\right) \]
+        \[ c = 2 \cdot \text{atan2}\left(\sqrt{a}, \sqrt{1-a}\right) \]
+        \[ d_{2d} = R \cdot c \]
+    </div>
+    <p><em>Where \(R = 6371000\) meters (Earth's radius), \(\phi\) is latitude, and \(\lambda\) is longitude.</em></p>
+
+    <p><strong>3D Travel Distance (\(d_{3d}\)):</strong> Uses the Pythagorean Theorem to account for elevation changes, ensuring the distance includes the physical hypotenuse of traveling up/down a hill.</p>
+    <div class="math-block">
+        \[ d_{3d} = \sqrt{d_{2d}^2 + \Delta z^2} \]
+    </div>
+    <p><em>Where \(\Delta z = z_2 - z_1\) (elevation difference).</em></p>
+
+    <h2>2. Topographical Computations</h2>
+    <p><strong>Total Ascent/Descent:</strong> Iterates through every segment between GPX points. If the elevation difference (\(\Delta z\)) is positive, it adds it to the total ascent. If negative, the absolute value is added to total descent.</p>
+    <div class="math-block">
+        \[ \text{Ascent} = \sum_{\Delta z_i > 0} \Delta z_i \]
+        \[ \text{Descent} = \sum_{\Delta z_i < 0} |\Delta z_i| \]
+    </div>
+
+    <p><strong>Max Slope (\(S_{max}\)):</strong> Calculated by finding the slope of every individual segment and tracking the highest absolute value found.</p>
+    <div class="math-block">
+        \[ \text{Slope}_i = \left( \frac{\Delta z_i}{d_{2d,i}} \right) \times 100\% \]
+        \[ S_{max} = \max_i (|\text{Slope}_i|) \]
+    </div>
+
+    <p><strong>Overall Gradient:</strong> The average slope of the entire path from start to finish.</p>
+    <div class="math-block">
+        \[ \text{Gradient} = \left( \frac{\sum \Delta z}{\sum d_{2d}} \right) \times 100\% \]
+    </div>
+
+    <h2>3. Kinematic Penalty Theory (Speed & Travel Time)</h2>
+    <p>Instead of a complex non-linear curve (like Tobler's function), this script uses a <strong>Linear Slope Penalty Theory</strong>.</p>
+    
+    <p><strong>Slope Penalty (\(P\)):</strong> Linear rule where base speed reduces by 2% for every 1% of absolute overall gradient. Capped at a maximum penalty of 80% (0.8).</p>
+    <div class="math-block">
+        \[ P = \min\left(|\text{Gradient}| \times 0.02, 0.8\right) \]
+    </div>
+
+    <p><strong>Adjusted Speed (\(V_{adj}\)):</strong></p>
+    <div class="math-block">
+        \[ V_{adj} = V_{base} \times (1 - P) \]
+    </div>
+    <p><em>Where \(V_{base} = 8.33 \text{ m/s}\) (approx. 30 km/h, typically for vehicle travel).</em></p>
+
+    <p><strong>Travel Time with Slope (\(T_{slope}\)):</strong></p>
+    <div class="math-block">
+        \[ T_{slope} = \frac{\sum d_{3d}}{V_{adj}} \]
+    </div>
+    <p><em>To get minutes: \(T_{min} = \frac{T_{slope}}{60}\)</em></p>
+
+</body>
+</html>
