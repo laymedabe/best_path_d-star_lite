@@ -1,5 +1,26 @@
 import csv
 
+# ==========================================
+# ADVANCED PATHFINDING FACTORS (FRAMEWORK)
+# ==========================================
+# Update these values once you collect your real-world data!
+# A multiplier of 1.0 means NO penalty. A multiplier of 1.5 means 50% slower.
+
+CONDITION_MULTIPLIERS = {
+    "Dirt": 1.0,     # e.g., change to 1.6 later for muddy/dirt roads
+    "Poor": 1.0,     # e.g., change to 1.2 later for cracked pavement
+    "Paved": 1.0
+}
+
+ROAD_TYPE_MULTIPLIERS = {
+    "Single Lane": 1.0,  # e.g., change to 1.2 later to account for bottlenecks
+    "Highway": 1.0
+}
+
+# Flat time penalty (in minutes) added to every road segment to simulate stopping at an intersection
+INTERSECTION_PENALTY_MIN = 0.0 # e.g., change to 0.16 (approx 10 seconds) later
+# ==========================================
+
 class Graph:
     def __init__(self):
         # Adjacency list: node -> {neighbor: cost}
@@ -46,11 +67,19 @@ def load_graph_from_csv(csv_path):
             else:
                 continue
                 
-            # Using the Travel_Time_with_Slope_min as the edge weight/cost
-            cost = float(row['Travel_Time_with_Slope_min'])
+            # Using the Travel_Time_with_Slope_min as the BASE edge weight/cost
+            base_cost = float(row['Travel_Time_with_Slope_min'])
             
-            # You can apply a condition multiplier here in the future
-            # e.g., if row['Condition'] == 'Poor': cost *= 1.5
+            # Extract new metrics if they exist in the CSV (default to empty string if missing)
+            condition = row.get('Condition', '').strip()
+            road_type = row.get('Road_Type', '').strip()
+            
+            # Apply mathematical penalties based on collected data
+            cond_mult = CONDITION_MULTIPLIERS.get(condition, 1.0)
+            type_mult = ROAD_TYPE_MULTIPLIERS.get(road_type, 1.0)
+            
+            # Final Time Cost = Base Time * Condition Penalty * Road Type Penalty + Intersection Penalty
+            cost = (base_cost * cond_mult * type_mult) + INTERSECTION_PENALTY_MIN
             
             graph.add_edge(source, target, cost)
             
