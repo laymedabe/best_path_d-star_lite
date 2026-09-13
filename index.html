@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Evacuation Routing</title>
+    <!-- Local leaflet CSS and JS for fully offline mode -->
+    <link rel="stylesheet" href="static/leaflet.css" />
+    <link rel="stylesheet" href="static/style.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#38bdf8" />
+    <link rel="apple-touch-icon" href="static/app_icon.jpg" />
+</head>
+<body>
+    
+    <!-- Top Bar for Mobile -->
+    <div class="mobile-header">
+        <button id="btn-toggle-left" class="nav-btn">☰ Menu</button>
+        <span class="mobile-title">Offline Evacuation</span>
+        <button id="btn-toggle-right" class="nav-btn">History ☰</button>
+    </div>
+
+    <div class="app-container">
+        
+        <!-- Left Sidebar (Main Controls) -->
+        <div id="left-sidebar" class="sidebar left-sidebar">
+            <h2 class="desktop-title">Offline Evacuation D*</h2>
+            
+            <div class="panel">
+                <h3>Select Evacuation Route</h3>
+                <select id="barangay-select">
+                    <option value="">-- Choose Barangay --</option>
+                </select>
+                <div id="route-result" style="margin-top: 10px;"></div>
+                <div id="path-details-list" class="scrollable" style="margin-top: 10px; max-height: 50vh;"></div>
+            </div>
+
+            <div class="panel scrollable" style="margin-top: 10px; flex-grow: 1;">
+                <h3>Blocked Roads</h3>
+                <ul id="blocked-list">
+                    <li style="color:#94a3b8; font-style:italic;">No roads are currently blocked.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Sidebar (History) -->
+        <div id="right-sidebar" class="sidebar right-sidebar">
+            <button id="btn-close-right" class="close-btn desktop-only">✕ Close</button>
+            <div class="panel scrollable" style="flex-grow: 1;">
+                <h3>Route History</h3>
+                <ul id="history-list"></ul>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div id="map"></div>
+
+        <!-- Floating Action Button for Desktop Right Sidebar -->
+        <button id="fab-history" class="fab desktop-only">📜 Route History</button>
+    </div>
+
+    <script src="static/leaflet.js"></script>
+    <script src="static/js/geojson_data.js"></script>
+    <script src="static/js/data.js"></script>
+    <script src="static/js/graph_builder.js"></script>
+    <script src="static/js/dstar_lite.js"></script>
+    <script src="static/app.js"></script>
+    <script>
+        // UI Toggling Logic
+        const leftSidebar = document.getElementById('left-sidebar');
+        const rightSidebar = document.getElementById('right-sidebar');
+        
+        document.getElementById('btn-toggle-left').addEventListener('click', () => {
+            leftSidebar.classList.toggle('active');
+            rightSidebar.classList.remove('active');
+        });
+
+        document.getElementById('btn-toggle-right').addEventListener('click', () => {
+            rightSidebar.classList.toggle('active');
+            leftSidebar.classList.remove('active');
+        });
+
+        document.getElementById('fab-history').addEventListener('click', () => {
+            rightSidebar.classList.toggle('active');
+        });
+        
+        document.getElementById('btn-close-right').addEventListener('click', () => {
+            rightSidebar.classList.remove('active');
+        });
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful');
+                }).catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
