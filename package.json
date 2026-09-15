@@ -1,0 +1,31 @@
+{
+  "name": "best_path_d-star_lite",
+  "version": "1.0.0",
+  "main": "sw.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/laymedabe/best_path_d-star_lite.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/laymedabe/best_path_d-star_lite/issues"
+  },
+  "homepage": "https://github.com/laymedabe/best_path_d-star_lite#readme",
+  "description": "",
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/filesystem": "^8.1.3",
+    "@capacitor/geolocation": "^8.2.2",
+    "@capacitor/share": "^8.0.1"
+  }
+}

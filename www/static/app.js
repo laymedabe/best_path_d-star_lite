@@ -16,7 +16,15 @@ function saveHistory() {
 
 // Initialize Map
 function initMap() {
-    map = L.map('map').setView([10.825, 122.354], 12);
+    map = L.map('map', {
+        renderer: L.canvas({ padding: 0.5 }), // Fixes path detaching/lag on zoom
+        rotate: true,
+        touchRotate: true,
+        rotateControl: {
+            closeOnZeroBearing: false,
+            position: 'bottomleft'
+        }
+    }).setView([10.825, 122.354], 12);
 
     // Load OFFLINE tiles from our local server
     L.tileLayer('static/tiles/{z}/{x}/{y}.png', {
@@ -175,8 +183,21 @@ function calculatePathCost(graph, path) {
     for (let i = 0; i < path.length - 1; i++) {
         cost += graph.edges[path[i]][path[i+1]];
     }
+    const mode = document.querySelector('input[name="travel-mode"]:checked');
+    if (mode && mode.value === 'walk') {
+        cost = cost * 6; // Walking is slower
+    }
     return cost;
 }
+
+// Re-run routing when travel mode changes
+document.querySelectorAll('input[name="travel-mode"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+        if (document.getElementById('barangay-select').value) {
+            document.getElementById('barangay-select').dispatchEvent(new Event('change'));
+        }
+    });
+});
 
 document.getElementById('barangay-select').addEventListener('change', () => {
     const start = document.getElementById('barangay-select').value;
@@ -197,7 +218,7 @@ document.getElementById('barangay-select').addEventListener('change', () => {
     let paths = [];
     let tempGraph = cloneGraph(globalGraph);
     let attempts = 0;
-    const maxPaths = 3;
+    const maxPaths = 5;
 
     while (paths.length < maxPaths && attempts < 10) {
         attempts++;
@@ -242,6 +263,7 @@ document.getElementById('barangay-select').addEventListener('change', () => {
             <strong style="color:#ef4444;">No Path Available</strong><br>
             This location is currently cut off due to road blockages.
         `;
+        document.getElementById('path-details-list').innerHTML = '';
         return alert("No alternative paths exist! This location is completely cut off.");
     }
     
@@ -380,3 +402,77 @@ function loadHistory() {
 }
 
 window.onload = initMap;
+
+// Database Management (History & Blocked Roads)
+document.getElementById('btn-clear-history').addEventListener('click', () => {
+    if (confirm("Are you sure you want to completely clear the local database (History and Blocked Roads)?")) {
+        routingHistory = [];
+        blockedEdges.clear();
+        localStorage.removeItem('routingHistory');
+        localStorage.removeItem('blockedEdges');
+        loadHistory();
+        renderBlockedList();
+        if (routeLayer) map.removeLayer(routeLayer);
+        document.getElementById('path-details-list').innerHTML = '';
+        document.getElementById('route-result').innerHTML = '';
+        document.getElementById('barangay-select').value = '';
+        alert("Database cleared successfully.");
+    }
+});
+
+// GPS Location Feature
+let gpsMarker = null;
+let gpsRing = null;
+
+document.getElementById('btn-gps').addEventListener('click', () => {
+    if (!navigator.geolocation) {
+        return alert("Geolocation is not supported by your device.");
+    }
+    
+    const btn = document.getElementById('btn-gps');
+    btn.style.opacity = '0.5';
+    
+    navigator.geolocation.getCurrentPosition((position) => {
+        btn.style.opacity = '1';
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        if (gpsMarker) map.removeLayer(gpsMarker);
+        if (gpsRing) map.removeLayer(gpsRing);
+        
+        gpsMarker = L.circleMarker([lat, lng], {
+            radius: 8,
+            fillColor: "#3b82f6",
+            color: "#ffffff",
+            weight: 3,
+            opacity: 1,
+            fillOpacity: 1
+        }).addTo(map);
+        
+        gpsRing = L.circleMarker([lat, lng], {
+            radius: 20,
+            color: "#3b82f6",
+            weight: 2,
+            opacity: 0.5,
+            fill: false
+        }).addTo(map);
+        
+        map.setView([lat, lng], 15);
+    }, (error) => {
+        btn.style.opacity = '1';
+        alert("Unable to retrieve your location. Please ensure Location services are turned on.");
+    }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+    });
+});
+
+// First Aid Modal
+document.getElementById('btn-first-aid').addEventListener('click', () => {
+    document.getElementById('first-aid-modal').style.display = 'block';
+});
+
+document.getElementById('close-first-aid').addEventListener('click', () => {
+    document.getElementById('first-aid-modal').style.display = 'none';
+});

@@ -1,1 +1,4 @@
-static/tiles
+www/static/tiles
+android/
+node_modules/
+*.py

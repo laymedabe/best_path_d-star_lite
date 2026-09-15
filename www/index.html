@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Evacuation Routing</title>
+    <!-- Local leaflet CSS and JS for fully offline mode -->
+    <link rel="stylesheet" href="static/leaflet.css" />
+    <link rel="stylesheet" href="static/style.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#38bdf8" />
+    <link rel="apple-touch-icon" href="static/app_icon.jpg" />
+</head>
+<body>
+    
+    <!-- Top Bar for Mobile -->
+    <div class="mobile-header">
+        <button id="btn-toggle-left" class="nav-btn icon-btn" title="Menu">☰</button>
+        <span class="mobile-title">Offline Evacuation</span>
+        <div style="display:flex; gap: 8px;">
+            <button id="btn-first-aid" class="nav-btn icon-btn" title="Survival Guide">⛑️</button>
+            <button id="btn-help-mobile" class="nav-btn icon-btn" title="Help">❓</button>
+            <button id="btn-toggle-right" class="nav-btn icon-btn" title="History">📜</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        
+        <!-- Left Sidebar (Main Controls) -->
+        <div id="left-sidebar" class="sidebar left-sidebar">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 class="desktop-title" style="margin:0;">Offline Evacuation D*</h2>
+                <button id="btn-help-desktop" class="nav-btn desktop-only" style="border:none; padding:5px 10px; cursor:pointer;">❓ Help</button>
+            </div>
+            
+            <div class="panel">
+                <div class="search-box">
+                    <select id="barangay-select" class="dropdown">
+                        <option value="" disabled selected>Select starting barangay...</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <label style="flex: 1; display: flex; align-items: center; gap: 5px; background: #1e293b; padding: 10px; border-radius: 5px; cursor: pointer;">
+                        <input type="radio" name="travel-mode" value="drive" checked> 🚗 Drive
+                    </label>
+                    <label style="flex: 1; display: flex; align-items: center; gap: 5px; background: #1e293b; padding: 10px; border-radius: 5px; cursor: pointer;">
+                        <input type="radio" name="travel-mode" value="walk"> 🚶 Walk
+                    </label>
+                </div>
+                <div id="route-result" style="margin-top: 10px;"></div>
+                <div id="path-details-list" class="scrollable" style="margin-top: 10px; max-height: 50vh;"></div>
+            </div>
+
+            <div class="panel scrollable" style="margin-top: 10px; flex-grow: 1;">
+                <h3>Blocked Roads</h3>
+                <ul id="blocked-list">
+                    <li style="color:#94a3b8; font-style:italic;">No roads are currently blocked.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Sidebar (History) -->
+        <div id="right-sidebar" class="sidebar right-sidebar">
+            <button id="btn-close-right" class="close-btn desktop-only">✕ Close</button>
+            <div class="panel scrollable" style="flex-grow: 1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h3 style="margin:0;">Route History</h3>
+                    <div>
+                        <button id="btn-clear-history" class="nav-btn danger-btn" style="font-size:0.8rem; padding:4px 8px; border:none;">🗑️ Clear</button>
+                    </div>
+                </div>
+                <ul id="history-list"></ul>
+            </div>
+        </div>
+
+        <!-- Map Area -->
+        <div id="map-container" style="flex:1; position: relative;">
+            <div id="map" style="width: 100%; height: 100%;"></div>
+            <button id="btn-gps" class="nav-btn icon-btn" style="position: absolute; bottom: 30px; right: 15px; z-index: 1000; background-color: var(--primary); width: 50px; height: 50px; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.5);" title="Locate Me">📍</button>
+        </div>
+
+        <!-- Floating Action Button for Desktop Right Sidebar -->
+        <button id="fab-history" class="fab desktop-only">📜 Route History</button>
+
+        
+        <!-- First Aid Modal -->
+        <div id="first-aid-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" id="close-first-aid">&times;</span>
+                <h2>⛑️ Survival & First Aid Guide</h2>
+                <div style="text-align: left; max-height: 60vh; overflow-y: auto; padding-right: 10px; margin-top: 15px;">
+                    <h3 style="color: #3b82f6; border-bottom: 1px solid #334155; padding-bottom: 5px;">🌊 Flood Protocol</h3>
+                    <ul style="padding-left: 20px; line-height: 1.5; margin-bottom: 20px;">
+                        <li>Move immediately to higher ground. Do not wait for instructions if waters are rising rapidly.</li>
+                        <li>Do not walk through moving water. Six inches of moving water can make you fall.</li>
+                        <li>Do not drive into flooded areas. If floodwaters rise around your car, abandon the car and move to higher ground.</li>
+                        <li>Disconnect electrical appliances. Do not touch electrical equipment if you are wet or standing in water.</li>
+                    </ul>
+
+                    <h3 style="color: #f59e0b; border-bottom: 1px solid #334155; padding-bottom: 5px;">🏚️ Earthquake Protocol</h3>
+                    <ul style="padding-left: 20px; line-height: 1.5; margin-bottom: 20px;">
+                        <li><strong>DROP, COVER, and HOLD ON!</strong> Drop to your hands and knees. Cover your head and neck with your arms. Hold on to any sturdy shelter.</li>
+                        <li>Stay away from glass, windows, outside doors and walls, and anything that could fall.</li>
+                        <li>If outdoors, stay outdoors. Move away from buildings, streetlights, and utility wires.</li>
+                    </ul>
+
+                    <h3 style="color: #ef4444; border-bottom: 1px solid #334155; padding-bottom: 5px;">🩹 Basic First Aid</h3>
+                    <ul style="padding-left: 20px; line-height: 1.5; margin-bottom: 20px;">
+                        <li><strong>Bleeding:</strong> Apply direct pressure to the wound with a clean cloth. Keep pressure applied until bleeding stops.</li>
+                        <li><strong>Burns:</strong> Cool the burn under cold running water for at least 10 minutes. Cover loosely with sterile dressing.</li>
+                        <li><strong>Fractures:</strong> Immobilize the injured area. Do not attempt to realign the bone.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+<!-- Instruction Modal -->
+        <div id="help-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" id="close-help">&times;</span>
+                <h2>How to Use This App</h2>
+                <ol style="text-align: left; padding-left: 20px; line-height: 1.6;">
+                    <li><strong>Select a Route:</strong> Use the dropdown on the left panel to choose your starting location (Barangay).</li>
+                    <li><strong>View Path:</strong> The best evacuation path to the town plaza will automatically calculate and draw in blue.</li>
+                    <li><strong>Block Roads:</strong> If a road is impassable (flooded, landslide), tap the red <strong>Block</strong> button next to the route name. The map will instantly recalculate a new alternative path (in yellow).</li>
+                    <li><strong>Manage Blockages:</strong> Open the left panel and scroll to "Blocked Roads" to unblock any roads that are clear again.</li>
+                    <li><strong>View History:</strong> Tap the <strong>📜 History</strong> button on the top right to view all your previously generated evacuation routes and distances.</li>
+                </ol>
+                <p><em>Note: This app runs completely offline. You can zoom in and twist the map using two fingers.</em></p>
+            </div>
+        </div>
+
+        
+    </div>
+
+    <script src="static/leaflet.js"></script>
+    <script src="static/js/leaflet-rotate.js"></script>
+    <script src="static/js/geojson_data.js"></script>
+    <script src="static/js/data.js"></script>
+    <script src="static/js/graph_builder.js"></script>
+    <script src="static/js/dstar_lite.js"></script>
+    <script src="static/app.js"></script>
+    <script>
+        // UI Toggling Logic
+        const leftSidebar = document.getElementById('left-sidebar');
+        const rightSidebar = document.getElementById('right-sidebar');
+        
+        document.getElementById('btn-toggle-left').addEventListener('click', () => {
+            leftSidebar.classList.toggle('active');
+            rightSidebar.classList.remove('active');
+        });
+
+        document.getElementById('btn-toggle-right').addEventListener('click', () => {
+            rightSidebar.classList.toggle('active');
+            leftSidebar.classList.remove('active');
+        });
+
+        document.getElementById('fab-history').addEventListener('click', () => {
+            rightSidebar.classList.toggle('active');
+        });
+        
+        document.getElementById('btn-close-right').addEventListener('click', () => {
+            rightSidebar.classList.remove('active');
+        });
+
+        // Modal Logic
+        const modal = document.getElementById('help-modal');
+        const btnHelpMobile = document.getElementById('btn-help-mobile');
+        const btnHelpDesktop = document.getElementById('btn-help-desktop');
+        const spanClose = document.getElementById('close-help');
+
+        function openModal() {
+            modal.style.display = "flex";
+        }
+        function closeModal() {
+            modal.style.display = "none";
+        }
+
+        if (btnHelpMobile) btnHelpMobile.addEventListener('click', openModal);
+        if (btnHelpDesktop) btnHelpDesktop.addEventListener('click', openModal);
+        if (spanClose) spanClose.addEventListener('click', closeModal);
+        window.addEventListener('click', (event) => {
+            if (event.target == modal) {
+                closeModal();
+            }
+        });
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful');
+                }).catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
