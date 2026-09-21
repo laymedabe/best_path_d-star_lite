@@ -19,15 +19,13 @@ def haversine_distance(lon1, lat1, lon2, lat2):
     return R * c
 
 def calculate_metrics():
-    # Find the newly uploaded gpx file
-    cwd = r"d:\CaelianProj\project_mst"
-    gpx_files = glob.glob(os.path.join(cwd, "*.gpx"))
+    # Use the newly generated gpx file
+    gpx_file = r"d:\CaelianProj\best_path_d-star_lite\www\complete\new_paths.gpx"
     
-    if not gpx_files:
+    if not os.path.exists(gpx_file):
         print("No GPX file found!")
         return
         
-    gpx_file = gpx_files[0]
     csv_file = r"d:\CaelianProj\best_path_d-star_lite\data\Calculated_Path_Metrics_GPX.csv"
 
     print(f"Processing {gpx_file}...")
