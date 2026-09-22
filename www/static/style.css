@@ -329,3 +329,5 @@ button:hover {
 
 .icon-btn { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; font-size: 1.2rem; border-radius: 50%; background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); }
 .icon-btn:hover { background-color: rgba(255, 255, 255, 0.2); }
+
+.custom-dropdown { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: var(--card-bg); border: 1px solid #334155; border-radius: 5px; z-index: 2000; list-style: none; padding: 0; margin: 0; } .custom-dropdown li { padding: 10px; cursor: pointer; border-bottom: 1px solid #334155; } .custom-dropdown li:hover, .custom-dropdown li.active { background-color: var(--primary); color: white; } .hidden { display: none; }

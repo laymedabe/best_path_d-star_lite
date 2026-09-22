@@ -34,15 +34,17 @@
             </div>
             
             <div class="panel">
-                <div class="search-box">
-                    <select id="barangay-select" class="dropdown">
-                        <option value="" disabled selected>Select starting barangay...</option>
-                    </select>
+                <div class="search-box" style="position: relative;">
+                    <input type="text" id="barangay-select" class="dropdown" placeholder="Search starting barangay..." autocomplete="off">
+                    <ul id="custom-dropdown" class="custom-dropdown hidden"></ul>
                 </div>
                 
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <label style="flex: 1; display: flex; align-items: center; gap: 5px; background: #1e293b; padding: 10px; border-radius: 5px; cursor: pointer;">
                         <input type="radio" name="travel-mode" value="drive" checked> 🚗 Drive
+                    </label>
+                    <label style="flex: 1; display: flex; align-items: center; gap: 5px; background: #1e293b; padding: 10px; border-radius: 5px; cursor: pointer;">
+                        <input type="radio" name="travel-mode" value="motorcycle"> 🏍️ Ride
                     </label>
                     <label style="flex: 1; display: flex; align-items: center; gap: 5px; background: #1e293b; padding: 10px; border-radius: 5px; cursor: pointer;">
                         <input type="radio" name="travel-mode" value="walk"> 🚶 Walk

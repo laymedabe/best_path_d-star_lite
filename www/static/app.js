@@ -56,10 +56,44 @@ function loadGeoJSON() {
         }
     });
     
-    const bgySelect = document.getElementById('barangay-select');
+    const bgyOptions = document.getElementById('custom-dropdown');
+    const bgyInput = document.getElementById('barangay-select');
+    let allBgys = Array.from(bgySet).sort();
     
-    Array.from(bgySet).sort().forEach(bgy => {
-        bgySelect.innerHTML += `<option value="${bgy}">${bgy}</option>`;
+    function renderList(filterText) {
+        bgyOptions.innerHTML = '';
+        let count = 0;
+        allBgys.forEach(bgy => {
+            if (bgy.toLowerCase().includes(filterText.toLowerCase())) {
+                let li = document.createElement('li');
+                li.textContent = bgy;
+                li.onmousedown = function(e) {
+                    e.preventDefault();
+                    bgyInput.value = bgy;
+                    bgyOptions.classList.add('hidden');
+                    bgyInput.dispatchEvent(new Event('change'));
+                };
+                bgyOptions.appendChild(li);
+                count++;
+            }
+        });
+        if(count > 0) {
+            bgyOptions.classList.remove('hidden');
+        } else {
+            bgyOptions.classList.add('hidden');
+        }
+    }
+
+    bgyInput.addEventListener('input', (e) => {
+        renderList(e.target.value);
+    });
+
+    bgyInput.addEventListener('focus', (e) => {
+        renderList(e.target.value);
+    });
+
+    bgyInput.addEventListener('blur', () => {
+        bgyOptions.classList.add('hidden');
     });
 }
 
@@ -184,8 +218,12 @@ function calculatePathCost(graph, path) {
         cost += graph.edges[path[i]][path[i+1]];
     }
     const mode = document.querySelector('input[name="travel-mode"]:checked');
-    if (mode && mode.value === 'walk') {
-        cost = cost * 6; // Walking is slower
+    if (mode) {
+        if (mode.value === 'walk') {
+            cost = cost * 6; // Walking is slower
+        } else if (mode.value === 'motorcycle') {
+            cost = cost * 0.85; // Motorcycles are generally 15% faster at navigating rural routes than cars
+        }
     }
     return cost;
 }
@@ -218,9 +256,9 @@ document.getElementById('barangay-select').addEventListener('change', () => {
     let paths = [];
     let tempGraph = cloneGraph(globalGraph);
     let attempts = 0;
-    const maxPaths = 5;
+    const maxPaths = 10;
 
-    while (paths.length < maxPaths && attempts < 10) {
+    while (paths.length < maxPaths && attempts < 20) {
         attempts++;
         
         let dstar = new DStarLite(tempGraph, startNode, GOAL_NODE);
